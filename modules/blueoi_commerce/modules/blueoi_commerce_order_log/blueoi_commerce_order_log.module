@@ -6,6 +6,8 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Render\RenderContext;
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter().
@@ -22,7 +24,12 @@ function blueoi_commerce_order_log_form_commerce_order_form_alter(&$form, FormSt
   $form['blueoi_commerce_order_log']['log'] = [
     '#type' => 'textarea',
     '#title' => t('Message'),
-    '#description' => t('Enter the log message to store with this update.'),
+    '#description' => t('Save a message with this order update.'),
+  ];
+  $form['blueoi_commerce_order_log']['email_copy'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Email a copy to the customer'),
+    '#description' => t('A message is not required to email an update.'),
   ];
   $form['actions']['submit']['#submit'][] = 'blueoi_commerce_order_log_form_commerce_order_form_submit';
 }
@@ -57,4 +64,96 @@ function blueoi_commerce_order_log_form_commerce_order_form_submit(array $form, 
       \Drupal::messenger()->addError(t('Unable to save the order log message due to @ex', ['@ex' => $ex->getMessage()]));
     }
   }
+
+  // If email copy was selected.
+  if (!empty($values['email_copy'])) {
+    $order = $form_state->getFormObject()->getEntity();
+    blueoi_commerce_order_log_send_copy($order, $values['log']);
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function blueoi_commerce_order_log_theme_registry_alter(&$theme_registry) {
+  // Add an order message variable to the commerce_order_receipt theme.
+  $theme_registry['commerce_order_receipt']['variables']['order_message'] = NULL;
+}
+
+/**
+ * Sends a copy of the order receipt to the order owner.
+ *
+ * @param \Drupal\commerce_order\Entity\OrderInterface $order
+ *   The order.
+ * @param string $log
+ *   The log message.
+ */
+function blueoi_commerce_order_log_send_copy(OrderInterface $order, $log = '') {
+  /** @var \Drupal\Core\Theme\ThemeManagerInterface $theme_manager */
+  $theme_manager = \Drupal::getContainer()->get('theme.manager');
+  /** @var \Drupal\Core\Theme\ThemeInitializationInterface $theme_initialization */
+  $theme_initialization = \Drupal::getContainer()->get('theme.initialization');
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::getContainer()->get('entity_type.manager');
+  /** @var \Drupal\profile\ProfileViewBuilder $profile_viewer */
+  $profile_viewer = $entity_type_manager->getViewBuilder('profile');
+  /** @var \Drupal\Core\Render\RendererInterface $renderer */
+  $renderer = \Drupal::getContainer()->get('renderer');
+  /** @var \Drupal\commerce_order\OrderTotalSummaryInterface $order_total_summary */
+  $order_total_summary = \Drupal::getContainer()->get('commerce_order.order_total_summary');
+
+  /** @var \Drupal\commerce_order\Entity\OrderTypeInterface $order_type */
+  $to = $order->getEmail();
+  if (!$to) {
+    // The email should not be empty, unless the order is malformed.
+    \Drupal::messenger()->addError(t('No email address exists on the order'));
+    return;
+  }
+
+  $params = [
+    'headers' => [
+      'Content-Type' => 'text/html; charset=UTF-8;',
+      'Content-Transfer-Encoding' => '8Bit',
+    ],
+    'from' => $order->getStore()->getEmail(),
+    'subject' => t('Order #@number confirmed', ['@number' => $order->getOrderNumber()]),
+    'order' => $order,
+  ];
+
+  $build = [
+    '#theme' => 'commerce_order_receipt',
+    '#order_entity' => $order,
+    '#order_message' => $log,
+    '#totals' => $order_total_summary->buildTotals($order),
+  ];
+
+  if ($billing_profile = $order->getBillingProfile()) {
+    $build['#billing_information'] = $profile_viewer->view($billing_profile);
+  }
+
+  // Store the current theme.
+  $current_theme = $theme_manager->getActiveTheme();
+
+  // Set the default theme to invoke theme templates.
+  $config = \Drupal::config('system.theme');
+  $theme = $theme_initialization->initTheme($config->get('default'));
+  $theme_manager->setActiveTheme($theme);
+
+  $params['body'] = $renderer->executeInRenderContext(new RenderContext(), function () use ($renderer, $build) {
+    return $renderer->render($build);
+  });
+
+  // Switch back to the current theme.
+  $theme_manager->setActiveTheme($current_theme);
+
+  // Replicated logic from EmailAction and contact's MailHandler.
+  if ($customer = $order->getCustomer()) {
+    $language = $customer->getPreferredLangcode();
+  }
+  else {
+    $language = \Drupal::getContainer()->get('language_manager')->getDefaultLanguage()->getId();
+  }
+
+  \Drupal::getContainer()->get('plugin.manager.mail')->mail('commerce_order', 'receipt', $to, $language, $params);
+  \Drupal::messenger()->addMessage(t('Order update message sent to @mail', ['@mail' => $to]));
 }
