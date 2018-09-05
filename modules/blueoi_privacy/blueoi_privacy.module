@@ -193,7 +193,9 @@ function blueoi_privacy_block_view($delta = '') {
   $block = array();
   switch ($delta) {
     case ('blueoi_privacy_sticky_footer'):
-      $block['content'] = theme('blueoi_privacy_sticky_footer');
+      $block['content'] = array(
+        '#theme' => 'blueoi_privacy_sticky_footer',
+      );
       $path = drupal_get_path('module', 'blueoi_privacy');
       drupal_add_css($path . '/css/blueoi-privacy.css');
       drupal_add_js($path . '/js/blueoi-privacy.js');
