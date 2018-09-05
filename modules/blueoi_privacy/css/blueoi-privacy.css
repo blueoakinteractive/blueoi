@@ -1,0 +1,27 @@
+#blueoi-privacy-sticky-footer {
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, .7);
+    min-height: 40px;
+    padding: 10px 20px;
+    color: #ffffff;
+    font-weight: bold;
+    display: none;
+}
+
+.blueoi-privacy-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 5px 5px 0 0;
+    font-size: 26px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.blueoi-privacy-close:hover {
+    text-decoration: none;
+}
