@@ -175,10 +175,9 @@ function blueoi_privacy_user_login(&$edit, $account) {
 function blueoi_privacy_theme() {
   return array(
     'blueoi_privacy_sticky_footer' => array(
-      'variables' => array(
-         'cookie_message' => NULL,
-      ),
+      'variables' => array('cookie_message' => NULL),
       'template' => 'blueoi-privacy-sticky-footer',
+      'path' => drupal_get_path('module', 'blueoi_privacy') . '/templates',
     ),
   );
 }
