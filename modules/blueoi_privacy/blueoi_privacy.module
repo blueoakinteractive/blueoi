@@ -57,6 +57,13 @@ function blueoi_privacy_config_optin_form($form, &$form_state) {
     '#description' => t('Set the text that your users must agree to to use the site as an authenticated user.'),
     '#rows' => 8,
   );
+  $form['blueoi_privacy_stick_footer_description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Sticky footer cookie policy'),
+    '#default_value' => variable_get('blueoi_privacy_stick_footer_description', t('We use cookies on this site to enhance your user experience. By clicking any link on this page you are giving your consent for us to set cookies. Read our cookie policy.')),
+    '#description' => t('Set the text that is displayed in the footer when users arrive to your site.'),
+    '#rows' => 8,
+  );
   return system_settings_form($form);
 }
 
@@ -168,8 +175,9 @@ function blueoi_privacy_user_login(&$edit, $account) {
 function blueoi_privacy_theme() {
   return array(
     'blueoi_privacy_sticky_footer' => array(
-      'variables' => array(),
-      'path' => drupal_get_path('module', 'blueoi_privacy') . '/templates',
+      'variables' => array(
+         'cookie_message' => NULL,
+      ),
       'template' => 'blueoi-privacy-sticky-footer',
     ),
   );
@@ -194,7 +202,7 @@ function blueoi_privacy_block_view($delta = '') {
   switch ($delta) {
     case ('blueoi_privacy_sticky_footer'):
       $block['content'] = array(
-        '#theme' => 'blueoi_privacy_sticky_footer',
+        '#markup' => theme('blueoi_privacy_sticky_footer', array('cookie_message' => variable_get('blueoi_privacy_stick_footer_description', t('We use cookies on this site to enhance your user experience. By clicking any link on this page you are giving your consent for us to set cookies. Read our cookie policy.')))),
       );
       $path = drupal_get_path('module', 'blueoi_privacy');
       drupal_add_css($path . '/css/blueoi-privacy.css');
