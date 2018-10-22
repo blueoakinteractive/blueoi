@@ -1,0 +1,8 @@
+blueoi_commerce_admin_order.order_item_widget_autocomplete:
+  path: '/blueoi_commerce_admin_order/orderItemAutoCompleteHandler/{entity_type}/{view_mode}/{count}'
+  defaults:
+    _controller: '\Drupal\blueoi_commerce_admin_order\Controller\OrderItemAutoComplete::orderItemAutoCompleteHandler'
+    _format: json
+    _title: 'Order Item Auto-complete'
+  requirements:
+    _permission: 'view commerce_product'
