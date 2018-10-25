@@ -65,6 +65,13 @@ function blueoi_commerce_field_formatter_info() {
         'calculation' => FALSE,
       ),
     ),
+    'blueoi_commerce_number_only' => array(
+      'label' => t('Number only  (e.g. 4.50)'),
+      'field types' => array('commerce_price'),
+      'settings' => array(
+        'calculation' => FALSE,
+      ),
+    ),
   );
 }
 
@@ -92,6 +99,13 @@ function blueoi_commerce_field_formatter_view($entity_type, $entity, $field, $in
 
       $element[$delta] = array(
         '#markup' => commerce_currency_format($price['amount'], $price['currency_code'], $entity),
+      );
+    }
+
+    // Create the number only price formatter render array.
+    if ($display['type'] == 'blueoi_commerce_number_only') {
+      $element[$delta] = array(
+        '#markup' => commerce_currency_amount_to_decimal($item['amount'], $item['currency_code']),
       );
     }
   }
