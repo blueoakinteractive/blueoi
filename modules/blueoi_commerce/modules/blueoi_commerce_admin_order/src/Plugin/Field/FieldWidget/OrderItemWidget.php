@@ -425,18 +425,6 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
     elseif (preg_match('/^order_items\[target_id\]\[order_items\]\[([0-9])*\]\[quantity\]\[quantity\]$/', $trigger_element['#name'])) {
       $order = $this->updateQuantity($items, $form, $form_state);
     }
-    if ($order) {
-      // Update the draft order with the changes.
-      $order->recalculateTotalPrice()->save();
-      // Update the order on the form.
-      $form_object = $form_state->getFormObject();
-      $form_object->setEntity($order);
-
-      // Remove the user input as we no longer need it.
-      $user_input = $form_state->getUserInput();
-      unset($user_input['order_items']);
-      $form_state->setUserInput($user_input);
-    }
   }
 
   /**
