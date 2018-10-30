@@ -1,0 +1,11 @@
+name: BlueOI Commerce External Payment
+type: module
+description: 'Provides an external payment option.'
+package: Commerce
+core: 8.x
+dependencies:
+  - commerce:commerce (>= 2.10)
+  - commerce:commerce_payment (>= 2.10)
+  - drupal:field
+  - drupal:text
+
