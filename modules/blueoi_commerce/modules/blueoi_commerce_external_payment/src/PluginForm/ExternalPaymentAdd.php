@@ -31,7 +31,7 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
         'Credit Card' => t('Credit Card'),
         'ACH/Wire' => t('ACH/Wire'),
         'Check' => t('Check'),
-        'Cash' => t('Cache'),
+        'Cash' => t('Cash'),
         'Other' => t('Other'),
       ],
       '#required' => TRUE,
