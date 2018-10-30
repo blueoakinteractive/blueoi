@@ -23,13 +23,13 @@ class ExternalPaymentType extends PaymentTypeBase {
     $fields = [];
     $fields['external_type'] = BundleFieldDefinition::create('string')
       ->setLabel(t('Type'))
-      ->setDescription(t('Store a reference with the payment'));
+      ->setDescription(t('Store the external payment type.'));
     $fields['external_reference'] = BundleFieldDefinition::create('string')
       ->setLabel(t('Reference'))
-      ->setDescription(t('Store a reference with the payment'));
+      ->setDescription(t('Store a reference with the payment.'));
     $fields['external_notes'] = BundleFieldDefinition::create('text')
       ->setLabel(t('Notes'))
-      ->setDescription(t('Store a note with the payment'));
+      ->setDescription(t('Store a note with the payment.'));
     return $fields;
   }
 
