@@ -426,8 +426,6 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
       $order = $this->updateQuantity($items, $form, $form_state);
     }
     if ($order) {
-      // Update the draft order with the changes.
-      $order->recalculateTotalPrice()->save();
       // Update the order on the form.
       $form_object = $form_state->getFormObject();
       $form_object->setEntity($order);
