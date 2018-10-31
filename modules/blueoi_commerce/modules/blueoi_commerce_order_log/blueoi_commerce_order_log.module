@@ -31,6 +31,11 @@ function blueoi_commerce_order_log_form_commerce_order_form_alter(&$form, FormSt
     '#title' => t('Email a copy to the customer'),
     '#description' => t('A message is not required to email an update.'),
   ];
+  $form['blueoi_commerce_order_log']['additional_email'] = [
+    '#type' => 'email',
+    '#title' => t('Alternate email'),
+    '#description' => t('Enter an alternate email address to send the copy to'),
+  ];
   $form['actions']['submit']['#submit'][] = 'blueoi_commerce_order_log_form_commerce_order_form_submit';
 }
 
@@ -68,7 +73,12 @@ function blueoi_commerce_order_log_form_commerce_order_form_submit(array $form, 
   // If email copy was selected.
   if (!empty($values['email_copy'])) {
     $order = $form_state->getFormObject()->getEntity();
-    blueoi_commerce_order_log_send_copy($order, $values['log']);
+    blueoi_commerce_order_log_send_copy($order, $order->getEmail(), $values['log']);
+  }
+
+  if (!empty($values['additional_email'])) {
+    $order = $form_state->getFormObject()->getEntity();
+    blueoi_commerce_order_log_send_copy($order, $values['additional_email'], $values['log']);
   }
 }
 
@@ -88,7 +98,7 @@ function blueoi_commerce_order_log_theme_registry_alter(&$theme_registry) {
  * @param string $log
  *   The log message.
  */
-function blueoi_commerce_order_log_send_copy(OrderInterface $order, $log = '') {
+function blueoi_commerce_order_log_send_copy(OrderInterface $order, $to, $log = '') {
   /** @var \Drupal\Core\Theme\ThemeManagerInterface $theme_manager */
   $theme_manager = \Drupal::getContainer()->get('theme.manager');
   /** @var \Drupal\Core\Theme\ThemeInitializationInterface $theme_initialization */
@@ -101,14 +111,6 @@ function blueoi_commerce_order_log_send_copy(OrderInterface $order, $log = '') {
   $renderer = \Drupal::getContainer()->get('renderer');
   /** @var \Drupal\commerce_order\OrderTotalSummaryInterface $order_total_summary */
   $order_total_summary = \Drupal::getContainer()->get('commerce_order.order_total_summary');
-
-  /** @var \Drupal\commerce_order\Entity\OrderTypeInterface $order_type */
-  $to = $order->getEmail();
-  if (!$to) {
-    // The email should not be empty, unless the order is malformed.
-    \Drupal::messenger()->addError(t('No email address exists on the order'));
-    return;
-  }
 
   $params = [
     'headers' => [
