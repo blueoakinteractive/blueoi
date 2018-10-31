@@ -24,6 +24,7 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
       throw new \InvalidArgumentException('Payment entity with no order reference given to PaymentAddForm.');
     }
 
+    // @todo: Make options customizable.
     $form['type'] = [
       '#type' => 'radios',
       '#title' => t('Payment Type'),
@@ -31,7 +32,7 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
         'Credit Card' => t('Credit Card'),
         'ACH/Wire' => t('ACH/Wire'),
         'Check' => t('Check'),
-        'Cash' => t('Cash'),
+        // 'Cash' => t('Cash'),
         'Other' => t('Other'),
       ],
       '#required' => TRUE,
