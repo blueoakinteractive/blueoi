@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\commerce_order\Plugin\Commerce\Condition;
+namespace Drupal\blueoi_commerce\Plugin\Commerce\Condition;
 
 use Drupal\commerce\Plugin\Commerce\Condition\ConditionBase;
 use Drupal\Core\Entity\EntityInterface;
