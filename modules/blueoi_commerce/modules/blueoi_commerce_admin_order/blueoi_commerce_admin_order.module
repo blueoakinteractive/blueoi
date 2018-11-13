@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Module file for BlueOI Commerce Admin Order.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Form alterations for the admin order edit form.
+ */
+function blueoi_commerce_admin_order_form_commerce_order_form_alter(&$form,  FormStateInterface $form_state, $form_id) {
+  // Attach the javscript library to the form.
+  $form['#attached']['library'][] = 'blueoi_commerce_admin_order/admin_order';
+}

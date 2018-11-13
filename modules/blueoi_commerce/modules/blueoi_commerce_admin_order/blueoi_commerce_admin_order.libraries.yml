@@ -1,0 +1,10 @@
+admin_order:
+  version: 1.x
+  js:
+    js/blueoi-commerce-admin-order.js: {}
+  dependencies:
+  - core/jquery
+  - core/drupal
+
+
+
