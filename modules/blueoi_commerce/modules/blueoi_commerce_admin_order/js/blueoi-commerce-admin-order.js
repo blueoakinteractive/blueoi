@@ -11,7 +11,12 @@
     Drupal.behaviors.blueoiCommerceAdminOrder = {
 
         attach: function (context) {
-            console.log('attached');
+            // Set the edit flag when a form element
+            // has an error after reload.
+            if ($(".commerce-order-form .error").length > 0) {
+                edit = true;
+            }
+
             // If they leave an input field, assume they changed it.
             $(".commerce-order-form :input").each(function () {
                 $(this).blur(function () {
