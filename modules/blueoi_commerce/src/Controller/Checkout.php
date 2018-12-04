@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Class Checkout.
  *
- * @package Drupal\bariani_commerce\Controller
+ * @package Drupal\blueoi_commerce\Controller
  */
 class Checkout extends ControllerBase {
 
