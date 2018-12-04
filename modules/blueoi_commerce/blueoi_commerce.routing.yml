@@ -1,0 +1,6 @@
+blueoi_commerce.checkout:
+  path: '/checkout'
+  defaults:
+    _controller: '\Drupal\blueoi_commerce\Controller\Checkout::Checkout'
+  requirements:
+    _custom_access: '\Drupal\blueoi_commerce\Controller\Checkout::checkoutAccess'
