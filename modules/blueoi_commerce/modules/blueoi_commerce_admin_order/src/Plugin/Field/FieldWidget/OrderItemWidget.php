@@ -316,7 +316,7 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
           '#default_value' => $unit_price->toArray(),
           '#allow_negative' => TRUE,
           '#order_item_id' => $order_item->id(),
-          '#disabled' => !$user->hasPermission('alter product unit price') ? TRUE : FALSE,
+          '#disabled' => !$user->hasPermission('manage ' . $order_item->bundle() . ' commerce_order_item') ? TRUE : FALSE,
           '#ajax' => [
             'callback' => [$this, 'ajaxRefresh'],
             'wrapper' => $wrapper_id,
