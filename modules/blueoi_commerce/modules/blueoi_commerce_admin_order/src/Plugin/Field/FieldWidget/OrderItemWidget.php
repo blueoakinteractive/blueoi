@@ -229,6 +229,7 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
       '#size' => $this->getSetting('size'),
       '#placeholder' => $this->getSetting('placeholder'),
       '#maxlength' => $this->getFieldSetting('max_length'),
+      '#description' => $this->t('Enter a product name or SKU above to add it to the order.'),
       '#default_value' => NULL,
       '#autocomplete_route_name' => 'blueoi_commerce_admin_order.order_item_widget_autocomplete',
       '#autocomplete_route_parameters' => [
@@ -252,7 +253,7 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
         $this->t('Product'),
         $this->t('Unit price'),
         $this->t('Quantity'),
-        $this->t('Action'),
+        $this->t('Remove'),
       ],
     ];
 
@@ -303,6 +304,9 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
     $unit_price = $order_item->getUnitPrice();
 
     $form = [
+      '#element_validate' => [
+        [static::class, 'validate'],
+      ],
       'purchasable_entity' => [
         '#type' => 'markup',
         '#markup' => \Drupal::service('renderer')->render($product_render),
@@ -317,14 +321,6 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
           '#allow_negative' => TRUE,
           '#order_item_id' => $order_item->id(),
           '#disabled' => !$user->hasPermission('manage ' . $order_item->bundle() . ' commerce_order_item') ? TRUE : FALSE,
-          '#ajax' => [
-            'callback' => [$this, 'ajaxRefresh'],
-            'wrapper' => $wrapper_id,
-            'event' => 'change',
-            'progress' => [
-              'message' => '',
-            ],
-          ],
         ],
         'unit_price_hidden' => [
           '#type' => 'hidden',
@@ -355,14 +351,6 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
               'blueoi-commerce-admin-order-quantity',
             ],
           ],
-          '#ajax' => [
-            'callback' => [$this, 'ajaxRefresh'],
-            'wrapper' => $wrapper_id,
-            'event' => 'change',
-            'progress' => [
-              'message' => '',
-            ],
-          ],
           '#order_item_id' => $order_item->id(),
         ],
         'quantity_hidden' => [
@@ -370,19 +358,13 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
           '#value' => $quantity,
         ],
       ],
-      'remove_order_item' => [
-        '#type' => 'button',
-        '#name' => 'remove_order_item_' . $order_item->id(),
-        '#value' => $this->t('Remove'),
-        '#ajax' => [
-          'callback' => [$this, 'ajaxRefresh'],
-          'wrapper' => $wrapper_id,
-          'progress' => [
-            'message' => '',
-          ],
-        ],
-        '#order_item_id' => $order_item->id(),
-        '#limit_validation_errors' => [],
+      'remove' => [
+        '#type' => 'checkbox',
+        '#default_value' => FALSE,
+      ],
+      'order_item_id' => [
+        '#type' => 'hidden',
+        '#value' => $order_item->id(),
       ],
     ];
 
@@ -394,6 +376,37 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
    */
   public function errorElement(array $element, ConstraintViolationInterface $error, array $form, FormStateInterface $form_state) {
     return isset($element['target_id']) ? $element['target_id'] : FALSE;
+  }
+
+  /**
+   * Validate callback for the element.
+   *
+   * Handles updating the order item on form submit.
+   *
+   * @param $element
+   *   The form element.
+   * @param FormStateInterface $form_state
+   *   The form state.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+  public function validate($element, FormStateInterface $form_state) {
+    $values = $form_state->getValue($element['#parents']);
+    $order_item_id = $values['order_item_id'];
+    $order_item = OrderItem::load($order_item_id);
+
+    if (!empty($order_item)) {
+      if ($values['quantity']['quantity'] > 0 && empty($values['remove'])) {
+        $order_item
+          ->setUnitPrice(new Price($values['unit_price']['unit_price']['number'], $values['unit_price']['unit_price']['currency_code']), TRUE)
+          ->setQuantity($values['quantity']['quantity'])
+          ->save();
+      } else {
+        $order = $form_state->getFormObject()->getEntity();
+        $order->removeItem($order_item);
+        $order_item->delete();
+      }
+    }
   }
 
   /**
@@ -413,18 +426,11 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
     $trigger_element = $form_state->getTriggeringElement();
 
     $order = FALSE;
+
     if ($trigger_element['#name'] === 'order_items[target_id][product_selector]') {
       $order = $this->addOrderItem($items, $form, $form_state);
     }
-    elseif (strpos($trigger_element['#name'], 'remove_order_item_') === 0) {
-      $order = $this->removeOrderItem($items, $form, $form_state);
-    }
-    elseif (preg_match('/^order_items\[target_id\]\[order_items\]\[([0-9])*\]\[unit_price\]\[unit_price\]\[number\]$/', $trigger_element['#name'])) {
-      $order = $this->updateUnitPrice($items, $form, $form_state);
-    }
-    elseif (preg_match('/^order_items\[target_id\]\[order_items\]\[([0-9])*\]\[quantity\]\[quantity\]$/', $trigger_element['#name'])) {
-      $order = $this->updateQuantity($items, $form, $form_state);
-    }
+
     if ($order) {
       // Update the order on the form.
       $form_object = $form_state->getFormObject();
@@ -435,105 +441,6 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
       unset($user_input['order_items']);
       $form_state->setUserInput($user_input);
     }
-  }
-
-  /**
-   * Updates an order item quantity from form field.
-   *
-   * @param \Drupal\Core\Field\FieldItemListInterface $items
-   *   Values for this field.
-   * @param array $form
-   *   The form array.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The form state.
-   *
-   * @return \Drupal\commerce_order\Entity\Order
-   *   The updated commerce order.
-   *
-   * @throws \Drupal\Core\Entity\EntityStorageException
-   */
-  protected function updateQuantity(FieldItemListInterface $items, array &$form, FormStateInterface &$form_state) {
-    $trigger_element = $form_state->getTriggeringElement();
-    $order_item = OrderItem::load($trigger_element['#order_item_id']);
-    $value_key = $trigger_element['#parents'];
-    $new_quantity = $form_state->getValue($value_key);
-    if (!$this->getSetting('allow_decimal')) {
-      $new_quantity = round($new_quantity, 0);
-    }
-    /** @var \Drupal\commerce_order\Entity\Order $order */
-    $order = $form_state->getFormObject()->getEntity();
-    if ($new_quantity > 0) {
-      $order_item->setQuantity($new_quantity);
-      $order_item->save();
-    }
-    else {
-      $order->removeItem($order_item);
-      $order_item->delete();
-    }
-    return $order;
-  }
-
-  /**
-   * Updates an order item quantity from form field.
-   *
-   * @param \Drupal\Core\Field\FieldItemListInterface $items
-   *   Values for this field.
-   * @param array $form
-   *   The form array.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The form state.
-   *
-   * @return \Drupal\commerce_order\Entity\Order
-   *   The updated commerce order.
-   *
-   * @throws \Drupal\Core\Entity\EntityStorageException
-   */
-  protected function removeOrderItem(FieldItemListInterface $items, array &$form, FormStateInterface &$form_state) {
-    $trigger_element = $form_state->getTriggeringElement();
-    $order_item = OrderItem::load($trigger_element['#order_item_id']);
-
-    /** @var \Drupal\commerce_order\Entity\Order $order */
-    $order = $form_state->getFormObject()->getEntity();
-    $order->removeItem($order_item);
-    $order_item->delete();
-    return $order;
-  }
-
-  /**
-   * Updates the unit price for an order item.
-   *
-   * @param \Drupal\Core\Field\FieldItemListInterface $items
-   *   Values for this field.
-   * @param array $form
-   *   The form array.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The form state.
-   *
-   * @return \Drupal\commerce_order\Entity\Order
-   *   The updated commerce order.
-   *
-   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
-   */
-  protected function updateUnitPrice(FieldItemListInterface $items, array &$form, FormStateInterface &$form_state) {
-    $trigger_element = $form_state->getTriggeringElement();
-    $value_key = $trigger_element['#parents'];
-    array_pop($value_key);
-    $value = $form_state->getValue($value_key);
-    // Get the order id from the parent.
-    $order_item = OrderItem::load($items->get($value_key[3])
-      ->getValue()['target_id']);
-    /** @var \Drupal\commerce_order\Entity\Order $order */
-    $order = $form_state->getFormObject()->getEntity();
-
-    $order_item_id = $form_state->getCompleteForm()['order_items']['widget']['target_id']['order_items'][$value_key[3]]['unit_price']['unit_price']['#order_item_id'];
-
-    $order_item = OrderItem::load($order_item_id);
-
-    $order_item
-      ->setUnitPrice(new Price($value['number'], $value['currency_code']), TRUE)
-      ->save();
-
-    return $order;
   }
 
   /**
