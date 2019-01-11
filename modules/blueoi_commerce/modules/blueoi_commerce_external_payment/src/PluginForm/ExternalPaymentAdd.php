@@ -33,12 +33,14 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
         'ACH/Wire' => t('ACH/Wire'),
         'Check' => t('Check'),
         // 'Cash' => t('Cash'),
+        'Split/Refund' => t('Split/Refund'),
         'Other' => t('Other'),
       ],
       '#required' => TRUE,
     ];
     $form['amount'] = [
       '#type' => 'commerce_price',
+      '#allow_negative' => TRUE,
       '#title' => t('Amount'),
       '#default_value' => $order->getTotalPrice()->toArray(),
       '#required' => TRUE,
