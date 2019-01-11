@@ -2,7 +2,9 @@
 
 namespace Drupal\blueoi_commerce_admin_order\Plugin\Field\FieldWidget;
 
+use Drupal\commerce\Context;
 use Drupal\commerce_order\Entity\OrderItem;
+use Drupal\commerce_order\PriceCalculator;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\Component\Utility\Html;
@@ -500,12 +502,15 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
 
     if ($create_new_order_item) {
       // Create new order Item for adding into existing order.
+      /** @var PriceCalculator $price_calculator */
+      $price_calculator = \Drupal::service('commerce_order.price_calculator');
+      $context = new Context($order->getCustomer(), $order->getStore());
       $order_item = OrderItem::create([
         'type' => 'default',
         'title' => $product_variation->label(),
         'purchased_entity' => $product_variation,
         'quantity' => 1,
-        'unit_price' => $product_variation->getPrice(),
+        'unit_price' => $price_calculator->calculate($product_variation, 1, $context)->getCalculatedPrice(),
       ]);
       $order_item->save();
 
