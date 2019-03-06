@@ -3,6 +3,8 @@
 namespace Drupal\blueoi_commerce_external_payment\PluginForm;
 
 use Drupal\commerce_payment\PluginForm\PaymentGatewayFormBase;
+use Drupal\commerce_price\Price;
+use Drupal\commerce_price\Rounder;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -72,11 +74,34 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state)  {
+    parent::validateConfigurationForm($form, $form_state);
+    /** @var Rounder $rounder */
+    $rounder = \Drupal::service('commerce_price.rounder');
+    $amount = $form_state->getValue(['payment', 'amount']);
+
+    // Validate a number is used for amount.
+    if (!is_numeric($amount['number'])) {
+      $form_state->setError($form['amount'], t('The must be a valid amount including decimal places'));
+      return FALSE;
+    }
+
+    // Validate the rounded price is the same.
+    $price = new Price((string) $amount['number'], $amount['currency_code']);
+    if ($price->getNumber() != $rounder->round($price)->getNumber()) {
+      $form_state->setError($form['amount'], t('The amount must be a valid number for @currency', ['@currency' => $amount['currency_code']]));
+      return FALSE;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValue($form['#parents']);
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $this->entity;
-    $payment->amount = $values['amount'];
+    $payment->amount = new Price((string) $values['amount']['number'], $values['amount']['currency_code']);
     $payment->set('external_type', [$values['type']]);
     $payment->set('external_reference', [$values['reference']]);
     $payment->set('external_notes', [$values['notes']]);
