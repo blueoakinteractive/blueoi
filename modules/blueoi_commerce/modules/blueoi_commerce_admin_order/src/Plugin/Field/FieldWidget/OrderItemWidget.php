@@ -394,6 +394,7 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
    */
   public function validate($element, FormStateInterface $form_state) {
     $values = $form_state->getValue($element['#parents']);
+    $order = $form_state->getFormObject()->getEntity();
     $order_item_id = $values['order_item_id'];
     $order_item = OrderItem::load($order_item_id);
 
@@ -404,9 +405,13 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
           ->setQuantity($values['quantity']['quantity'])
           ->save();
       } else {
-        $order = $form_state->getFormObject()->getEntity();
-        $order->removeItem($order_item);
-        $order_item->delete();
+        if (count($order->getItems()) > 1) {
+          $order->removeItem($order_item);
+          $order_item->delete();
+        }
+        else {
+          $form_state->setError($element['remove'], t('At least one order item is required. Please add an order item before attempting to delete the last item on the order.'));
+        }
       }
     }
   }
