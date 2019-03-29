@@ -44,7 +44,7 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
       '#type' => 'commerce_price',
       '#allow_negative' => TRUE,
       '#title' => t('Amount'),
-      '#default_value' => $order->getTotalPrice()->toArray(),
+      '#default_value' => $order->getBalance()->toArray(),
       '#required' => TRUE,
     ];
     $form['date'] = [
