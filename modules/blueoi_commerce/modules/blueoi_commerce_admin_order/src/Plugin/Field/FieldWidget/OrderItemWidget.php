@@ -3,7 +3,9 @@
 namespace Drupal\blueoi_commerce_admin_order\Plugin\Field\FieldWidget;
 
 use Drupal\commerce\Context;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItem;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_order\PriceCalculator;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductVariation;
@@ -213,10 +215,10 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
       '#tree' => TRUE,
       '#description' => $this->fieldDefinition->getDescription(),
       '#field_title' => $this->fieldDefinition->getLabel(),
+      '#required' => FALSE,
     ] + $element;
 
     // Make a wrapper for the entire form.
-    // @todo this feels off. There must be a better way.
     if (empty($form_state->wrapper_id)) {
       $wrapper_id = Html::getUniqueId(__CLASS__);
       $form['#prefix'] = '<div id="' . $wrapper_id . '">';
@@ -266,7 +268,10 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
     }
 
     $element['#default_value'] = $items->referencedEntities();
-    return ['target_id' => $element];
+    $element['#required'] = FALSE;
+    return [
+      'target_id' => $element
+    ];
   }
 
   /**
@@ -381,6 +386,14 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public static function afterBuild(&$form, FormStateInterface $form_state) {
+    $form['order_items']['#required'] = FALSE;
+    return $form;
+  }
+
+  /**
    * Validate callback for the element.
    *
    * Handles updating the order item on form submit.
@@ -394,7 +407,9 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
    */
   public function validate($element, FormStateInterface $form_state) {
     $values = $form_state->getValue($element['#parents']);
+    /** @var OrderInterface $order */
     $order = $form_state->getFormObject()->getEntity();
+    /** @var OrderItemInterface $order_item_id */
     $order_item_id = $values['order_item_id'];
     $order_item = OrderItem::load($order_item_id);
 
@@ -405,13 +420,16 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
           ->setQuantity($values['quantity']['quantity'])
           ->save();
       } else {
-        if (count($order->getItems()) > 1) {
-          $order->removeItem($order_item);
-          $order_item->delete();
-        }
-        else {
-          $form_state->setError($element['remove'], t('At least one order item is required. Please add an order item before attempting to delete the last item on the order.'));
-        }
+
+        // Force delete the order item reference to prevent
+        // orphaned field data when there are validation errors.
+        $connection = \Drupal::database();
+        $connection->delete('commerce_order__order_items')
+          ->condition('order_items_target_id', $order_item->id())
+          ->execute();
+
+        $order->removeItem($order_item);
+        $order_item->delete();
       }
     }
   }

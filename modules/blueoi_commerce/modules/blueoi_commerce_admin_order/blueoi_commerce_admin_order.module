@@ -15,4 +15,5 @@ use Drupal\Core\Form\FormStateInterface;
 function blueoi_commerce_admin_order_form_commerce_order_form_alter(&$form,  FormStateInterface $form_state, $form_id) {
   // Attach the javscript library to the form.
   $form['#attached']['library'][] = 'blueoi_commerce_admin_order/admin_order';
+  $form['order_items']['widget']['target_id']['#required'] = FALSE;
 }
