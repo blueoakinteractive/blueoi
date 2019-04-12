@@ -305,6 +305,18 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
     // If we don't render product here the title appears in the wrong place.
     // @todo work out why and fix this.
     $view_builder = $this->entityTypeManager->getViewBuilder($order_item->getEntityTypeId());
+
+    // Create a mock product for deleted product variation entities.
+    if (empty($product)){
+      $product = ProductVariation::create([
+        'type' => 'default',
+        'sku' => 'DELETED-ITEM',
+        'title' => $this->t('DELETED ITEM (@label)', ['@label' => $order_item->label()]),
+        'status' => 1,
+        'price' => new Price((string) $order_item->getTotalPrice()->getNumber(), $order_item->getTotalPrice()->getCurrencyCode()),
+      ]);
+    }
+
     $product_render = $view_builder->view($product, $this->getSetting('purchasable_entity_view_mode'), $order_item->language()
       ->getId());
     $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
