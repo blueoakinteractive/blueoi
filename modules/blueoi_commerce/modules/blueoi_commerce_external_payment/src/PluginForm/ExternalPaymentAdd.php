@@ -40,6 +40,13 @@ class ExternalPaymentAdd extends PaymentGatewayFormBase {
       ],
       '#required' => TRUE,
     ];
+
+    /** @var Price $balance */
+    $balance = $order->getBalance();
+    if (!$balance instanceof Price || $balance->isNegative()) {
+      $balance = new Price('0.00', $order->getStore()->getDefaultCurrencyCode());
+    }
+
     $form['amount'] = [
       '#type' => 'commerce_price',
       '#allow_negative' => TRUE,
