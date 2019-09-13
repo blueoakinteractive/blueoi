@@ -7,7 +7,6 @@
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\Core\Render\RenderContext;
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter().
@@ -99,16 +98,10 @@ function blueoi_commerce_order_log_theme_registry_alter(&$theme_registry) {
  *   The log message.
  */
 function blueoi_commerce_order_log_send_copy(OrderInterface $order, $to, $log = '') {
-  /** @var \Drupal\Core\Theme\ThemeManagerInterface $theme_manager */
-  $theme_manager = \Drupal::getContainer()->get('theme.manager');
-  /** @var \Drupal\Core\Theme\ThemeInitializationInterface $theme_initialization */
-  $theme_initialization = \Drupal::getContainer()->get('theme.initialization');
   /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
   $entity_type_manager = \Drupal::getContainer()->get('entity_type.manager');
   /** @var \Drupal\profile\ProfileViewBuilder $profile_viewer */
   $profile_viewer = $entity_type_manager->getViewBuilder('profile');
-  /** @var \Drupal\Core\Render\RendererInterface $renderer */
-  $renderer = \Drupal::getContainer()->get('renderer');
   /** @var \Drupal\commerce_order\OrderTotalSummaryInterface $order_total_summary */
   $order_total_summary = \Drupal::getContainer()->get('commerce_order.order_total_summary');
 
@@ -118,7 +111,7 @@ function blueoi_commerce_order_log_send_copy(OrderInterface $order, $to, $log = 
       'Content-Transfer-Encoding' => '8Bit',
     ],
     'from' => $order->getStore()->getEmail(),
-    'subject' => t('Order #@number confirmed', ['@number' => $order->getOrderNumber()]),
+    'subject' => t('Order #@number update', ['@number' => $order->getOrderNumber()]),
     'order' => $order,
   ];
 
@@ -133,20 +126,7 @@ function blueoi_commerce_order_log_send_copy(OrderInterface $order, $to, $log = 
     $build['#billing_information'] = $profile_viewer->view($billing_profile);
   }
 
-  // Store the current theme.
-  $current_theme = $theme_manager->getActiveTheme();
-
-  // Set the default theme to invoke theme templates.
-  $config = \Drupal::config('system.theme');
-  $theme = $theme_initialization->initTheme($config->get('default'));
-  $theme_manager->setActiveTheme($theme);
-
-  $params['body'] = $renderer->executeInRenderContext(new RenderContext(), function () use ($renderer, $build) {
-    return $renderer->render($build);
-  });
-
-  // Switch back to the current theme.
-  $theme_manager->setActiveTheme($current_theme);
+  $params['body'] = $build;
 
   // Replicated logic from EmailAction and contact's MailHandler.
   if ($customer = $order->getCustomer()) {
@@ -156,6 +136,6 @@ function blueoi_commerce_order_log_send_copy(OrderInterface $order, $to, $log = 
     $language = \Drupal::getContainer()->get('language_manager')->getDefaultLanguage()->getId();
   }
 
-  \Drupal::getContainer()->get('plugin.manager.mail')->mail('commerce_order', 'receipt', $to, $language, $params);
+  \Drupal::getContainer()->get('plugin.manager.mail')->mail('commerce', 'receipt', $to, $language, $params);
   \Drupal::messenger()->addMessage(t('Order update message sent to @mail', ['@mail' => $to]));
 }
