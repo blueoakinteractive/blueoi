@@ -115,6 +115,7 @@ class OrderItemAutoComplete extends ControllerBase {
     $query->condition('status', 1);
     $query->range(0, 20);
     $query->sort('title', 'ASC');
+    \Drupal::moduleHandler()->alter('blueoi_commerce_admin_order_order_item_variation_query', $query, $input);
     return $query->execute();
   }
 
