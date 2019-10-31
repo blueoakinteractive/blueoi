@@ -501,19 +501,6 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
       'product_selector',
     ]));
 
-    if (!$product_variation) {
-      $variation = \Drupal::entityQuery('commerce_product_variation')
-        ->condition('field_upc', $form_state->getValue([
-          'order_items', 'target_id', 'product_selector',
-        ]))
-        ->range(0, 1)
-        ->execute();
-
-      if ($variation) {
-        $product_variation = ProductVariation::load(reset($variation));
-      }
-    }
-
     // If we've not loaded a product variation then exit doing nothing.
     if (!$product_variation) {
       // There's nothing to do.
