@@ -11,6 +11,18 @@
     Drupal.behaviors.blueoiCommerceAdminOrder = {
 
         attach: function (context) {
+
+            // Prevent the backspace key from triggering
+            // the browsers back button functionality.
+            var rx = /INPUT|SELECT|TEXTAREA/i;
+            $(document).bind("keydown keypress", function(e){
+              if( e.which == 8 ){ // 8 == backspace
+                if(!rx.test(e.target.tagName) || e.target.disabled || e.target.readOnly ){
+                  e.preventDefault();
+                }
+              }
+            });
+
             // Set the edit flag when a form element
             // has an error after reload.
             if ($(".commerce-order-form .error").length > 0) {
