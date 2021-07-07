@@ -400,9 +400,9 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
   /**
    * {@inheritdoc}
    */
-  public static function afterBuild(&$form, FormStateInterface $form_state) {
-    $form['order_items']['#required'] = FALSE;
-    return $form;
+  public static function afterBuild(array $element, FormStateInterface $form_state) {
+    $element['order_items']['#required'] = FALSE;
+    return $element;
   }
 
   /**
