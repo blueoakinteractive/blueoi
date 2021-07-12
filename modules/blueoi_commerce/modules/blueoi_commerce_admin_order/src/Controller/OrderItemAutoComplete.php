@@ -31,7 +31,7 @@ class OrderItemAutoComplete extends ControllerBase {
   /**
    * The tempstore object.
    *
-   * @var \Drupal\user\SharedTempStore
+   * @var \Drupal\Core\TempStore\PrivateTempStoreFactory
    */
   protected $tempStore;
 
@@ -57,7 +57,7 @@ class OrderItemAutoComplete extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity_type.manager'),
-      $container->get('user.private_tempstore'),
+      $container->get('tempstore.private'),
       $container->get('renderer')
     );
   }
