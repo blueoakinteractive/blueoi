@@ -324,7 +324,7 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
 
     $form = [
       '#element_validate' => [
-        [static::class, 'validate'],
+        [$this, 'validate'],
       ],
       'purchasable_entity' => [
         '#type' => 'markup',
