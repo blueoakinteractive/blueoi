@@ -18,6 +18,7 @@ use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\Element;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 
@@ -253,6 +254,7 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
     $referenced_entities = $items->referencedEntities();
     $element['order_items'] = [
       '#type' => 'table',
+      '#required' => FALSE,
       '#header' => [
         $this->t('Product'),
         $this->t('Unit price'),
@@ -401,7 +403,10 @@ class OrderItemWidget extends WidgetBase implements WidgetInterface, ContainerFa
    * {@inheritdoc}
    */
   public static function afterBuild(array $element, FormStateInterface $form_state) {
-    $element['order_items']['#required'] = FALSE;
+    foreach (array_keys(Element::children($element)) as $key) {
+      $element[$key]['#required'] = FALSE;
+    }
+    $element['#required'] = FALSE;
     return $element;
   }
 
